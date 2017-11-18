@@ -3,6 +3,31 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
+import matplotlib.pyplot as plt
+
+def bb_intersection_over_union(boxA, boxB):
+	#Taken from pyimagesearch
+	# determine the (x, y)-coordinates of the intersection rectangle
+	xA = max(boxA[0], boxB[0])
+	yA = max(boxA[1], boxB[1])
+	xB = min(boxA[2], boxB[2])
+	yB = min(boxA[3], boxB[3])
+
+	# compute the area of intersection rectangle
+	interArea = (xB - xA + 1) * (yB - yA + 1)
+
+	# compute the area of both the prediction and ground-truth
+	# rectangles
+	boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+	boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+	# compute the intersection over union by taking the intersection
+	# area and dividing it by the sum of prediction + ground-truth
+	# areas - the interesection area
+	iou = interArea / float(boxAArea + boxBArea - interArea)
+
+	# return the intersection over union value
+	return iou
 
 class Conv2d(nn.Module):
 	def __init__(self, in_channels, out_channels, kernel_size, stride=1, relu=True, same_padding=False, bn=False):
@@ -75,6 +100,49 @@ def find_pixels_in_image(idx1,idx2,idx3,idx4):
 			rows.append(imi);cols.append(imj)
 	return (rows,cols)
 
+def visualise(anchors):
+	for anchor in anchors:
+		cv2.rectangle(image,(int(anchor[0]),int(anchor[1])),(int(anchor[2]),int(anchor[3])),(0,255,0),2)
+
+	plt.imshow(image)
+	plt.show()
+	return
+
+def get_labels(gt,anchor):
+	labels = []
+	if bb_intersection_over_union(gt,anchor) > 0.7
+		labels.append(1)
+	else
+		labels.append(0)
+	return labels 
+
+def find_anchors(image_pixels):
+	rows,columns = image_pixels
+	for i in range(len(rows)):
+		anchors = generate_anchors(rows[i],columns[i])
+		for anchor in anchors:
+			cls_labels = get_labels(ground_truth,anchor)
+
+	return
+
+
+def get_values():
+	size = []
+	ratios = [0.5,1,2]
+	scales = [128,256,512]
+	for ratio in ratios:
+		for scale in scales:
+			size.append([scale*ratio,scale/ratio])
+
+	return np.array(size)
+
+def generate_anchors(x_ctr,y_ctr):
+	x_min = x_ctr-(0.5*sizes[:,0])
+	x_max = x_ctr+(0.5*sizes[:,0])
+	y_min = y_ctr-(0.5*sizes[:,1])
+	y_max = y_ctr+(0.5*sizes[:,1])
+	return np.vstack((x_min,y_min,x_max,y_max)).T
+
 if __name__ == '__main__':	
 	all_weights = np.load('/home/brij/Desktop/github_projects/obj_det/VGG_imagenet.npy').item()
 	network = VGG16(bn=None)
@@ -90,16 +158,17 @@ if __name__ == '__main__':
 
 		v.copy_(param)
 
-	import matplotlib.pyplot as plt
-	image = cv2.imread('/home/brij/Desktop/github_projects/obj_det/VOCdevkit/VOC2007/JPEGImages/000007.jpg')
+	image = cv2.imread('/home/brij/Desktop/github_projects/obj_det/datasets/VOCdevkit/VOC2007/JPEGImages/000007.jpg')
 	m,n,p = image.shape
 	img = image.reshape(1,m,n,p)
 	out,idx1,idx2,idx3,idx4 = network.forward(Variable(torch.from_numpy(img).permute(0,3,1,2).float()))
 	corresponding_pixels = find_pixels_in_image(idx1,idx2,idx3,idx4)
-	map_ = np.zeros(image.shape[:2], dtype=np.uint8)
-	map_[corresponding_pixels] = 1
-	plt.subplot(121)
-	plt.imshow(image)
-	plt.subplot(122)
-	plt.imshow(map_, cmap='Greys')
-	plt.show()
+	# map_ = np.zeros(image.shape[:2], dtype=np.uint8)
+	# map_[corresponding_pixels] = 1
+	# plt.subplot(121)
+	# plt.imshow(image)
+	# plt.subplot(122)
+	# plt.imshow(map_, cmap='Greys')
+	# plt.show()
+	sizes = get_values()
+	anchors = find_anchors(corresponding_pixels)

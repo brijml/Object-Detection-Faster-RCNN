@@ -11,20 +11,17 @@ def search_image(file):
 		if img_file.split('.')[0] == name:
 			return cv2.imread(os.path.join(img_directory,img_file)) 
 
-def read_xml():
-	for file in xml_files:
-		img = search_image(file)
-		tree = ET.parse(os.path.join(xml_directory,file))
-		root = tree.getroot()
-		for child in root:
-			if child.tag == 'object':
-				name = child[0].text
-				x1,y1,x2,y2 = int(child[4][0].text),int(child[4][1].text),int(child[4][2].text),int(child[4][3].text)
-				font = cv2.FONT_HERSHEY_SIMPLEX
-				cv2.putText(img,name,(x1,y1),font,1,(0,255,255),2,cv2.LINE_AA)
-				cv2.rectangle(img,(x1,y1),(x2,y2),(0,255,0),2)
-		plt.imshow(img)
-		plt.show()
+def parse(xml_file):
+	labels = {}
+	tree = ET.parse(os.path.join(xml_directory,file))
+	root = tree.getroot()
+	for child in root:
+		if child.tag == 'object':
+			name = child[0].text
+			x1,y1,x2,y2 = int(child[4][0].text),int(child[4][1].text),int(child[4][2].text),int(child[4][3].text)
+			labels['name':[x1,y1,x2,y2]]
+
+	return labels
 
 
 if __name__ == '__main__':
