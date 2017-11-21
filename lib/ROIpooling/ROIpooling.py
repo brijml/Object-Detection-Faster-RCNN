@@ -23,20 +23,26 @@ def parse(xml_file):
 	return labels
 
 def resize(image,labels,arr):
+	'''
+	resizing image so as to have largest dimension to be of length 1000 (maintaing aspect ratio)
+	'''
 	m,n = image.shape[:2]
 	a = float(m)/n
 	if m>n : m1,n1 = 1000,int(1000/a)
 	else: m1,n1 = int(1000*a),1000
 	rm,rn = int(m1/m),int(n1/n)
 	image = cv2.resize(image,(n1,m1))
+	
+	# applying same resize to label co-ordinates, the co-ordinates are in convention (x,y) and not (row,column)
 	for label in labels:
 		k = label.values()[0] 
-		label[label.keys()[0]] = [int(k[0]*rm),int(k[1]*rn),int(k[2]*rm),int(k[3]*rn)]
+		label[label.keys()[0]] = [int(k[0]*rn),int(k[1]*rm),int(k[2]*rn),int(k[3]*rm)]
 
-	arr[:,0] = arr[:,0]*rm
-	arr[:,1] = arr[:,1]*rn
-	arr[:,2] = arr[:,2]*rm
-	arr[:,3] = arr[:,3]*rn
+	# the co-ordinates are in (x,y) convention and not (row,column)
+	arr[:,0] = arr[:,0]*rn
+	arr[:,1] = arr[:,1]*rm
+	arr[:,2] = arr[:,2]*rn
+	arr[:,3] = arr[:,3]*rm
 	return image,labels,arr
 
 def forward(img,proposals_image):
