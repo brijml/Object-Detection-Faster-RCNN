@@ -38,11 +38,11 @@ def resize(image,labels,arr):
 		k = label.values()[0] 
 		label[label.keys()[0]] = [int(k[0]*rn),int(k[1]*rm),int(k[2]*rn),int(k[3]*rm)]
 
-	# the co-ordinates are in (x,y) convention and not (row,column)
-	arr[:,0] = arr[:,0]*rn
-	arr[:,1] = arr[:,1]*rm
-	arr[:,2] = arr[:,2]*rn
-	arr[:,3] = arr[:,3]*rm
+	# the co-ordinates are in (row,column)
+	arr[:,0] = arr[:,0]*rm
+	arr[:,1] = arr[:,1]*rn
+	arr[:,2] = arr[:,2]*rm
+	arr[:,3] = arr[:,3]*rn
 	return image,labels,arr
 
 def forward(img,proposals_image):
