@@ -104,6 +104,7 @@ def forward(img, proposals_image, labels):
             else:
                 iou_score_list.append(iou_score)
                 temp_region_proposals_list.append([r1, c1, r2, c2])
+                break
                 # print('found')
     # print('total no of proposals', proposals_image.shape[0])
     # print('no of proposals with more than 0.5 iou: ', len(temp_region_proposals_list))
