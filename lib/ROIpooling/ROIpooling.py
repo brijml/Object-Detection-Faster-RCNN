@@ -63,8 +63,8 @@ def forward(img, proposals_image):
     # print('test', np.min(proposals_image[:, 0]), np.min(proposals_image[:, 1]), np.max(proposals_image[:, 2]), np.max(proposals_image[:, 3]))
     for ind in range(proposals_image.shape[0]):
         one_proposal = proposals_image[ind]
-        row_min, column_min, row_max, column_max = one_proposal[0], one_proposal[1], one_proposal[2], one_proposal[3]
-        r1, c1, r2, c2 = int(row_min / 16) - 1, int(column_min / 16) - 1, int(row_max / 16) - 1, int(column_max / 16) - 1
+        row_min, column_min, row_max, column_max = one_proposal[0] - 1, one_proposal[1] - 1, one_proposal[2] - 1, one_proposal[3] - 1
+        r1, c1, r2, c2 = int(row_min / 16), int(column_min / 16), int(row_max / 16), int(column_max / 16)
         roi = ROIpool()
         roi.forward(conv_feature_map, r1, c1, r2, c2)
     return
