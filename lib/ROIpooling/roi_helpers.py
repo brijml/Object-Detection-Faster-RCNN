@@ -64,12 +64,12 @@ def resize(image, boxes, arr):
     for i,box in enumerate(boxes):
         boxes[i] = [int(box[0] * rn), int(box[1] * rm), int(box[2] * rn), int(box[3] * rm)]
 
-    roi_height = arr[:,2]-arr[:,0]
-    roi_width = arr[:,3]-arr[:,1]
+    # roi_height = arr[:,2]-arr[:,0]
+    # roi_width = arr[:,3]-arr[:,1]
     # the co-ordinates are in (row,column)
-    final_rois[:, 0] = arr[:, 0]
-    final_rois[:, 1] = arr[:, 1]
-    final_rois[:, 2] = (roi_height * rm) - arr[:,0]
-    final_rois[:, 3] = (roi_width * rn) - arr[:,1]
+    final_rois[:, 1] = arr[:, 0] * rm
+    final_rois[:, 0] = arr[:, 1] * rn
+    final_rois[:, 3] = arr[:, 2] * rm
+    final_rois[:, 2] = arr[:, 3] * rn
 
     return image, boxes, final_rois
