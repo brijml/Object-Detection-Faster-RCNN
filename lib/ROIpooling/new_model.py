@@ -34,11 +34,12 @@ from keras.models import Model
 from keras.layers import Flatten, Dense, Dropout
 from roipoolinglayer import RoiPoolingConv
 
+
 def fast_rcnn(imgs, rois):
     vgg_model = VGG16(weights='imagenet', include_top=False, pooling=None)
     conv_feature_map = vgg_model(imgs)
-    roi_pooling_layer = RoiPoolingConv(7, 128) # what to do???
-    roi_out = roipoolinglayer(conv_feature_map, rois)
+    # roi_pooling_layer = RoiPoolingConv(7, 128)  # what to do???
+    roi_out = RoiPoolingConv(conv_feature_map, rois)
     f1 = TimeDistributed(Flatten(input_shape=(None, None)))(roi_out)  # dont know what to write here
     f2 = TimeDistributed(Dense(4096, activation='relu', name='fc1'))(f1)
     f3 = TimeDistributed(Dropout(0.5))(f2)
@@ -47,4 +48,11 @@ def fast_rcnn(imgs, rois):
     output1 = TimeDistributed(Dense(20, activation='softmax', kernel_initializer='zero'))(f5)
     output2 = TimeDistributed(Dense(4 * 20, activation='linear', kernel_initializer='zero'))(f5)
 
-    return [output1, output2]
+    final_model = Model(vgg_model.layers[0], output=[output1, output2])
+    loss_for_classification = "categorical_crossentropy"
+    loss_for_bounding_box = "smooth_L1_loss"
+    final_model.compile(optimizer='sgd',
+                        loss=[loss_for_classification, loss_for_bounding_box],
+                        metrics=['accuracy'])  # add additional parameters
+
+    return final_model
