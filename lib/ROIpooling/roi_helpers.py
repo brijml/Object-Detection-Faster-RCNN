@@ -6,6 +6,7 @@ from random import shuffle
 import matplotlib.pyplot as plt
 from train_fastrcnn import visualise_minibatch
 
+
 def show(img):
     plt.imshow(img)
     plt.show()
@@ -51,15 +52,16 @@ def intersection_over_union_score(boxA, boxB):
 
 
 def transform(image, boxes, arr):
-    m,n = image.shape[:2]
+    m, n = image.shape[:2]
     image = cv2.flip(cv2.transpose(image), 1)
-    for i,box in enumerate(boxes):
-        boxes[i] = [m-box[3], box[0], m-box[1], box[2]]
+    for i, box in enumerate(boxes):
+        boxes[i] = [m - box[3], box[0], m - box[1], box[2]]
 
-    for i,box in enumerate(arr):
-        arr[i] = [m-box[3], box[0], m-box[1], box[2]]
+    for i, box in enumerate(arr):
+        arr[i] = [m - box[3], box[0], m - box[1], box[2]]
 
     return image, boxes, arr
+
 
 def resize(image, boxes, arr):
     '''
@@ -69,12 +71,12 @@ def resize(image, boxes, arr):
     m, n = image.shape[:2]
 
     if m > n:
-        print "calling_transform"
+        print("calling_transform")
         image, boxes, arr = transform(image, boxes, arr)
-        m,n = image.shape[:2]
+        m, n = image.shape[:2]
 
     m1, n1 = 710, 1000
-    rm, rn = float(m1)/m, float(n1)/n
+    rm, rn = float(m1) / m, float(n1) / n
     resized_image = cv2.resize(image, (n1, m1))
 
     # applying same resize to label co-ordinates, the co-ordinates are in convention (x,y) and not (row,column)

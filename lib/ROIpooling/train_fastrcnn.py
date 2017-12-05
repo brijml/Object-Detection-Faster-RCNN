@@ -14,7 +14,7 @@ def visualise_minibatch(img, batch):
     if len(batch) == 3:
         gboxes, pboxes = batch[1], batch[2]
     else:
-        gboxes,pboxes = batch,None
+        gboxes, pboxes = batch, None
 
     for box in gboxes:
         if box is not None:
@@ -22,12 +22,12 @@ def visualise_minibatch(img, batch):
             cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
     if pboxes is not None:
-	    for box in pboxes:
-	        if box is not None:
-	            x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
-	            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        for box in pboxes:
+            if box is not None:
+                x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
+                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
-    show(img)
+    # show(img)
     return
 
 
@@ -63,16 +63,18 @@ def create_array(classes, gboxes, pboxes):
 
     return cls_array, bboxes_array
 
+
 def create_iou_array(gt_boxes, proposals_image):
 
     iou_array = np.zeros((len(proposals_image), len(gt_boxes)), np.float32)
-    for i,proposal in enumerate(proposals_image):
+    for i, proposal in enumerate(proposals_image):
         proposal_width, proposal_height = proposal[3] - proposal[1], proposal[2] - proposal[0]
         if proposal_width > DS_FACTOR * POOL_SIZE and proposal_height > DS_FACTOR * POOL_SIZE:
-            for j,gt_box in enumerate(gt_boxes):
-                iou_array[i,j] = intersection_over_union_score(gt_box, proposal)
+            for j, gt_box in enumerate(gt_boxes):
+                iou_array[i, j] = intersection_over_union_score(gt_box, proposal)
 
     return iou_array
+
 
 def sample_minibatch(class_labels, gt_boxes, proposals_image):
     classes, bboxes, pboxes = [], [], []
@@ -80,21 +82,24 @@ def sample_minibatch(class_labels, gt_boxes, proposals_image):
     iou_array = create_iou_array(gt_boxes, proposals_image)
     indices_positive = np.where(iou_array > 0.5)
     no_positive = len(indices_positive[0])
+    print('no_positive', no_positive)
     pcount = 0
     while pcount < 16:
-        rand_idx = np.random.randint(no_positive)
-        p_idx,g_idx = indices_positive[0][rand_idx],indices_positive[1][rand_idx]
+        rand_idx = np.random.randint(low=0, high=no_positive)
+        p_idx, g_idx = indices_positive[0][rand_idx], indices_positive[1][rand_idx]
         classes.append(class_labels[g_idx])
         bboxes.append(gt_boxes[g_idx])
         pboxes.append(proposals_image[p_idx])
         pcount += 1
-    
-    indices_negative = np.where(np.logical_and(0.1<=iou_array,iou_array< 0.5))
+
+    indices_negative = np.where(np.logical_and(0.1 <= iou_array, iou_array < 0.5))
     no_positive = len(indices_negative[0])
+    print('no_pos', no_positive)
     ncount = 0
-    while ncount < 48:
-        rand_idx = np.random.randint(no_negative)
-        p_idx,g_idx = indices_negative[0][rand_idx],indices_negative[1][rand_idx]
+    no_negative = len(indices_negative[0])
+    while ncount < 64 - no_positive:
+        rand_idx = np.random.randint(low=0, high=no_negative)
+        p_idx, g_idx = indices_negative[0][rand_idx], indices_negative[1][rand_idx]
         classes.append('background')
         bboxes.append(None)
         pboxes.append(proposals_image[p_idx])
@@ -133,7 +138,7 @@ if __name__ == '__main__':
     while epoch < no_epochs:
         shuffle(files)
         for i in range(0, len(files), N):
-            # print('file no', i)
+            print('file no', i)
             files_batch = files[i:i + N]
             batch_class, batch_boxes, batch_pboxes = [], [], []
             imgs = []
