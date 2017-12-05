@@ -4,7 +4,7 @@ import os
 import xml.etree.ElementTree as ET
 from random import shuffle
 import matplotlib.pyplot as plt
-
+from train_fastrcnn import visualise_minibatch
 
 def show(img):
     plt.imshow(img)
@@ -19,8 +19,6 @@ def parse(xml_file):
     for child in root:
         if child.tag == 'object':
             name = child[0].text
-            # print('name', name)
-            # print('1', child[4][0].text, child[4][1].text, child[4][2].text, child[4][3].text)
             x1, y1, x2, y2 = int(child[4][0].text), int(child[4][1].text), int(child[4][2].text), int(child[4][3].text)
             classes.append(name)
             boxes.append([x1, y1, x2, y2])
@@ -52,32 +50,41 @@ def intersection_over_union_score(boxA, boxB):
     return iou
 
 
+def transform(image, boxes, arr):
+    m,n = image.shape[:2]
+    image = cv2.flip(cv2.transpose(image), 1)
+    for i,box in enumerate(boxes):
+        boxes[i] = [m-box[3], box[0], m-box[1], box[2]]
+
+    for i,box in enumerate(arr):
+        arr[i] = [m-box[3], box[0], m-box[1], box[2]]
+
+    return image, boxes, arr
+
 def resize(image, boxes, arr):
     '''
     resizing image so as to have largest dimension to be of length 1000 (maintaing aspect ratio)
     '''
     final_rois = np.zeros_like(arr)
     m, n = image.shape[:2]
-    a = float(m) / n
+
     if m > n:
-        # m1, n1 = 1000, int(1000 / a)
-        m1, n1 = 1000, 710
-    else:
-        # m1, n1 = int(1000 * a), 1000
-        m1, n1 = 710, 1000
-    rm, rn = int(m1 / m), int(n1 / n)
-    image = cv2.resize(image, (n1, m1))
+        print "calling_transform"
+        image, boxes, arr = transform(image, boxes, arr)
+        m,n = image.shape[:2]
+
+    m1, n1 = 710, 1000
+    rm, rn = float(m1)/m, float(n1)/n
+    resized_image = cv2.resize(image, (n1, m1))
 
     # applying same resize to label co-ordinates, the co-ordinates are in convention (x,y) and not (row,column)
+    resized_boxes = []
     for i, box in enumerate(boxes):
-        boxes[i] = [int(box[0] * rn), int(box[1] * rm), int(box[2] * rn), int(box[3] * rm)]
+        resized_boxes.append([int(box[0] * rn), int(box[1] * rm), int(box[2] * rn), int(box[3] * rm)])
 
-    # roi_height = arr[:,2]-arr[:,0]
-    # roi_width = arr[:,3]-arr[:,1]
-    # the co-ordinates are in (row,column)
     final_rois[:, 1] = arr[:, 0] * rm
     final_rois[:, 0] = arr[:, 1] * rn
     final_rois[:, 3] = arr[:, 2] * rm
     final_rois[:, 2] = arr[:, 3] * rn
 
-    return image, boxes, final_rois
+    return resized_image, resized_boxes, final_rois

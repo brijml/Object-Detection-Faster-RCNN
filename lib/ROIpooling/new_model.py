@@ -32,31 +32,19 @@ from keras.applications.vgg16 import VGG16
 from keras.layers import TimeDistributed
 from keras.models import Model
 from keras.layers import Flatten, Dense, Dropout
+from roipoolinglayer import RoiPoolingConv
 
-
-def modified_model_Model():
+def fast_rcnn(imgs, rois):
     vgg_model = VGG16(weights='imagenet', include_top=False, pooling=None)
+    conv_feature_map = vgg_model(imgs)
+    roi_pooling_layer = RoiPoolingConv(7, 128) # what to do???
+    roi_out = roipoolinglayer(conv_feature_map, rois)
+    f1 = TimeDistributed(Flatten(input_shape=(None, None)))(roi_out)  # dont know what to write here
+    f2 = TimeDistributed(Dense(4096, activation='relu', name='fc1'))(f1)
+    f3 = TimeDistributed(Dropout(0.5))(f2)
+    f4 = TimeDistributed(Dense(4096, activation='relu', name='fc2'))(f3)
+    f5 = TimeDistributed(Dropout(0.5))(f4)
+    output1 = TimeDistributed(Dense(20, activation='softmax', kernel_initializer='zero'))(f5)
+    output2 = TimeDistributed(Dense(4 * 20, activation='linear', kernel_initializer='zero'))(f5)
 
-    roi_pooling_layer = "" # what to do???
-    f1 = TimeDistributed(Flatten(input_shape=(None, None)))  # dont know what to write here
-    f2 = TimeDistributed(Dense(4096, activation='relu', name='fc1'))
-    f3 = TimeDistributed(Dropout(0.5))
-    f4 = TimeDistributed(Dense(4096, activation='relu', name='fc2'))
-    f5 = TimeDistributed(Dropout(0.5))
-    output1 = TimeDistributed(Dense(20, activation='softmax', kernel_initializer='zero'))
-    output2 = TimeDistributed(Dense(4 * 20, activation='linear', kernel_initializer='zero'))
-
-    vgg_model.add(roi_pooling_layer)  # dont know how to add pooling layer here
-    vgg_model.add(f1)
-    vgg_model.add(f2)
-    vgg_model.add(f3)
-    vgg_model.add(f4)
-    vgg_model.add(f5)
-    vgg_model.add(output1)
-    vgg_model.add(output2)
-
-    init_layer = vgg_model.layer[0]
-
-    final_model = Model(inputs=[init_layer], outputs=[output1, output2])
-
-    return final_model
+    return [output1, output2]
