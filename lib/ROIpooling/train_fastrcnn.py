@@ -41,7 +41,7 @@ def one_hot(classes):
 
 
 def parameterise(gbox, pbox):
-    box = np.zeros(4, dtype=np.float32)
+    box = np.zeros(4, dtype=np.int16)
     pw, ph = pbox[2] - pbox[0], pbox[3] - pbox[1]
     gw, gh = gbox[2] - gbox[0], gbox[3] - gbox[1]
     box[0] = (gbox[0] - pbox[0]) / pw
@@ -53,15 +53,19 @@ def parameterise(gbox, pbox):
 
 def create_array(classes, gboxes, pboxes):
     cls_array = one_hot(classes)
-    bboxes_array = np.zeros((len(gboxes), 80), dtype=np.float32)
+    bboxes_coords = np.zeros((len(gboxes), 80), dtype=np.int16)
+    bboxes_labels = np.zeros((len(gboxes), 80), dtype=np.int16)
+    pboxes_array = np.zeros((len(pboxes),4), dtype=np.int16)
 
     for i, gbox in enumerate(gboxes):
         if gbox is not None:
             parametrised_box = parameterise(gbox, pboxes[i])
             start_idx = 4 * (class_dict[classes[i]] - 1)
-            bboxes_array[i, start_idx:start_idx + 4] = parametrised_box
+            bboxes_coords[i, start_idx:start_idx + 4] = parametrised_box
+            bboxes_labels[i, start_idx:start_idx + 4] = [1,1,1,1]
 
-    return cls_array, bboxes_array
+    bboxes_array = np.concatenate([bboxes_labels, bboxes_coords], axis=1)
+    return np.expand_dims(cls_array,axis=0), np.expand_dims(bboxes_array,axis=0), np.expand_dims(pboxes_array, axis=0)
 
 
 def create_iou_array(gt_boxes, proposals_image):
@@ -82,28 +86,23 @@ def sample_minibatch(class_labels, gt_boxes, proposals_image):
     iou_array = create_iou_array(gt_boxes, proposals_image)
     indices_positive = np.where(iou_array > 0.5)
     no_positive = len(indices_positive[0])
-    print('no_positive', no_positive)
-    pcount = 0
-    while pcount < 16:
+
+    while len(classes) < 16:
         rand_idx = np.random.randint(low=0, high=no_positive)
         p_idx, g_idx = indices_positive[0][rand_idx], indices_positive[1][rand_idx]
         classes.append(class_labels[g_idx])
         bboxes.append(gt_boxes[g_idx])
         pboxes.append(proposals_image[p_idx])
-        pcount += 1
 
     indices_negative = np.where(np.logical_and(0.1 <= iou_array, iou_array < 0.5))
-    no_positive = len(indices_negative[0])
-    print('no_pos', no_positive)
-    ncount = 0
     no_negative = len(indices_negative[0])
-    while ncount < 64 - no_positive:
+
+    while len(classes) < 64 :
         rand_idx = np.random.randint(low=0, high=no_negative)
         p_idx, g_idx = indices_negative[0][rand_idx], indices_negative[1][rand_idx]
         classes.append('background')
         bboxes.append(None)
         pboxes.append(proposals_image[p_idx])
-        ncount += 1
 
     rand_idx = list(range(len(pboxes)))
     shuffle(rand_idx)
@@ -114,7 +113,7 @@ def sample_minibatch(class_labels, gt_boxes, proposals_image):
         temp_classes.append(classes[i])
         temp_pboxes.append(pboxes[i])
 
-    return classes, bboxes, pboxes
+    return temp_classes, temp_bboxes, temp_pboxes
 
 
 if __name__ == '__main__':
@@ -130,15 +129,15 @@ if __name__ == '__main__':
     no_epochs = 10
     epoch = 0
 
-    # img_input = Input(shape=input_shape_img)
-    # roi_input = Input(shape=(None, 4))
-    # model = Model([img_input, roi_input], fast_rcnn)
-    # model.compile(loss=[cls_loss, smoothL1],optimizer=optimizers.RMSprop(lr=1e-5, decay=0.0001),  metrics=['accuracy'])
+    img_input = Input(shape=(None, None, None, 3))
+    roi_input = Input(shape=(None, 4))
+    model = Model([img_input, roi_input], fast_rcnn)
+    model.compile(loss=[cls_loss, smoothL1],optimizer=optimizers.RMSprop(lr=1e-5, decay=0.0001),  metrics=['accuracy'])
 
+    count = 0 
     while epoch < no_epochs:
         shuffle(files)
         for i in range(0, len(files), N):
-            print('file no', i)
             files_batch = files[i:i + N]
             batch_class, batch_boxes, batch_pboxes = [], [], []
             imgs = []
@@ -146,19 +145,31 @@ if __name__ == '__main__':
                 name = file.split('.')[0]
                 img = cv2.imread(os.path.join(images_dir, file))
                 xml_file = os.path.join(annotations_dir, name + '.xml')
-                class_labels, gt_boxes = parse(xml_file)
+                try:
+                    class_labels, gt_boxes = parse(xml_file)
+                except Exception as e:
+                	print "error",e
+                	print name
+                	count+=1
+                	continue
                 index = np.where(all_proposals['images'] == name)[0][0]
                 proposals_image = all_proposals['boxes'][:, index][0]
                 img, gt_boxes, proposals_image = resize(img, gt_boxes, proposals_image)
-
-                batch = sample_minibatch(class_labels, gt_boxes, proposals_image)
-                visualise_minibatch(img, batch)
+                
+                try:
+                    batch = sample_minibatch(class_labels, gt_boxes, proposals_image)
+                except Exception as e:
+                    print "error",e    
+                    print name
+                    count+=1
+                # visualise_minibatch(img, batch)
                 batch_class.extend(batch[0])
                 batch_boxes.extend(batch[1])
                 batch_pboxes.extend(batch[2])
                 imgs.append(img)
 
             imgs_array = np.array(imgs)
-            batch_class_array, batch_boxes_array = create_array(batch_class, batch_boxes, batch_pboxes)
-            # model_loss = model.train_on_batch(x=imgs_array, y=[batch_class_array, batch_boxes_array])
+            batch_class_array, batch_boxes_array,batch_roi_array = create_array(batch_class, batch_boxes, batch_pboxes)
+	        model_loss = model.train_on_batch(x=[imgs_array, batch_roi_array], y=[batch_class_array, batch_boxes_array])
+        print count
         epoch += 1

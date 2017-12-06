@@ -71,7 +71,6 @@ def resize(image, boxes, arr):
     m, n = image.shape[:2]
 
     if m > n:
-        print("calling_transform")
         image, boxes, arr = transform(image, boxes, arr)
         m, n = image.shape[:2]
 

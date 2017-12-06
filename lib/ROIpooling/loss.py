@@ -2,10 +2,14 @@ import numpy as np
 from keras import losses
 from keras import backend as K
 
-def smoothL1(y_true, y_pred):
-	x = K.abs(ytrue - y_pred[0:16, :])
-	x = tf.where(tf.less(x, 1.0), 0.5 * x ** 2, x - 0.5)
-	return K.sum(x, axis=-1)
+epsilon = 1e-4
 
-def cls_loss(y_true, y_pred):
-	return losses.categorical_crossentropy(y_true,y_pred)
+def smoothL1(y_true, y_pred):
+	x = y_true[:, :, 80:] - y_pred
+	x_abs = K.abs(x)
+	x_bool = K.cast(K.less_equal(x_abs, 1.0), 'float32')
+	return K.sum(y_true[:, :, :80] * (x_bool * (0.5 * x * x) + (1 - x_bool) * (x_abs - 0.5))) / K.sum(epsilon + y_true[:, :, :80])
+
+
+def class_loss_cls(y_true, y_pred):
+	return K.mean(losses.categorical_crossentropy(y_true[0, :, :], y_pred[0, :, :]))
