@@ -27,28 +27,33 @@ def parse(xml_file):
     return classes, boxes
 
 
-def intersection_over_union_score(boxA, boxB):
-    # determine the (x, y)-coordinates of the intersection rectangle
-    xA = max(boxA[0], boxB[0])
-    yA = max(boxA[1], boxB[1])
-    xB = min(boxA[2], boxB[2])
-    yB = min(boxA[3], boxB[3])
+def union(au, bu, area_intersection):
+    area_a = float(au[2] - au[0]) * float(au[3] - au[1])
+    area_b = float(bu[2] - bu[0]) * float(bu[3] - bu[1])
+    area_union = area_a + area_b - area_intersection
+    return area_union
 
-    # compute the area of intersection rectangle
-    interArea = (xB - xA + 1) * (yB - yA + 1)
 
-    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+def intersection(ai, bi):
+    x = max(ai[0], bi[0])
+    y = max(ai[1], bi[1])
+    w = min(ai[2], bi[2]) - x
+    h = min(ai[3], bi[3]) - y
+    if w < 0 or h < 0:
+        return 0
+    return float(w)*float(h)
 
-    try:
-        iou = interArea / float(boxAArea + boxBArea - interArea)
-    except Exception as e:
-        iou = 0
 
-    if iou < 0:
-        iou = 0
+def intersection_over_union_score(a, b):
+    # a and b should be (x1,y1,x2,y2)
 
-    return iou
+    if a[0] >= a[2] or a[1] >= a[3] or b[0] >= b[2] or b[1] >= b[3]:
+        return 0.0
+
+    area_i = intersection(a, b)
+    area_u = union(a, b, area_i)
+
+    return float(area_i) / float(area_u + 1e-6)
 
 
 def transform(image, boxes, arr):
@@ -83,9 +88,9 @@ def resize(image, boxes, arr):
     for i, box in enumerate(boxes):
         resized_boxes.append([int(box[0] * rn), int(box[1] * rm), int(box[2] * rn), int(box[3] * rm)])
 
-    final_rois[:, 1] = arr[:, 0] * rm
-    final_rois[:, 0] = arr[:, 1] * rn
-    final_rois[:, 3] = arr[:, 2] * rm
-    final_rois[:, 2] = arr[:, 3] * rn
+    final_rois[:, 0] = arr[:, 0] * rm
+    final_rois[:, 1] = arr[:, 1] * rn
+    final_rois[:, 2] = arr[:, 2] * rm
+    final_rois[:, 3] = arr[:, 3] * rn
 
     return resized_image, resized_boxes, final_rois

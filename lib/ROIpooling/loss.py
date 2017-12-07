@@ -11,5 +11,5 @@ def smoothL1(y_true, y_pred):
 	return K.sum(y_true[:, :, :80] * (x_bool * (0.5 * x * x) + (1 - x_bool) * (x_abs - 0.5))) / K.sum(epsilon + y_true[:, :, :80])
 
 
-def class_loss_cls(y_true, y_pred):
-	return K.mean(losses.categorical_crossentropy(y_true[0, :, :], y_pred[0, :, :]))
+def cls_loss(y_true, y_pred):
+	return K.mean(losses.categorical_crossentropy(y_true[:, :, :], y_pred[:, :, :]))
