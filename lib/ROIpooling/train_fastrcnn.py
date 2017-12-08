@@ -132,6 +132,19 @@ def sample_minibatch(class_labels, gt_boxes, proposals_image):
 
     return temp_classes, temp_bboxes, temp_pboxes
 
+def project(batch_pboxes):
+	new_batch_pboxes = []
+	for pboxes in batch_pboxes:
+		new_pboxes,new_box = [],[0]*4
+		for box in pboxes:
+			new_box[0] = int(box[0]/16.0)
+			new_box[1] = int(box[1]/16.0)
+			new_box[2] = int((box[2]-box[0])/16.0)
+			new_box[3] = int((box[2]-box[0])/16.0)
+			new_pboxes.append(new_box)
+		new_batch_pboxes.append(new_pboxes)
+	return
+
 
 if __name__ == '__main__':
 
@@ -191,6 +204,7 @@ if __name__ == '__main__':
                     print "one batch"
                     imgs_array = np.array(imgs)
                     print imgs_array.shape
+                    batch_pboxes = project(batch_pboxes)
                     batch_class_array, batch_boxes_array,batch_roi_array = create_array(batch_class, batch_boxes, batch_pboxes)
                     print batch_class_array.shape, batch_boxes_array.shape, batch_roi_array.shape
                     batch_count+=1
