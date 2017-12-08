@@ -3,8 +3,8 @@ import cv2
 import os
 import xml.etree.ElementTree as ET
 from random import shuffle
-import matplotlib.pyplot as plt
-from train_fastrcnn import visualise_minibatch
+# import matplotlib.pyplot as plt
+# from train_fastrcnn import visualise_minibatch
 
 
 def show(img):

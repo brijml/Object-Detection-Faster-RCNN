@@ -54,7 +54,6 @@ def one_hot(classes_list):
         for j, class_ in enumerate(classes):
             probability[i, j, class_dict[class_]] = 1
 
-    print probability[0][0][0]
     return probability
 
 
@@ -185,7 +184,7 @@ if __name__ == '__main__':
             try:
                 # for file in files_batch:
                 name = f.split('.')[0]
-                img = cv2.imread(os.path.join(images_dir, f))
+                img = cv2.imread(os.path.join(C.images_path, f))
                 xml_file = os.path.join(C.annotations_path, name + '.xml')
                 class_labels, gt_boxes = parse(xml_file)
 
@@ -204,8 +203,8 @@ if __name__ == '__main__':
 
                 if len(imgs) == N:
                     imgs_array = np.array(imgs)
-                    batch_pboxes = project(batch_pboxes)
                     batch_class_array, batch_boxes_array,batch_roi_array = create_array(batch_class, batch_boxes, batch_pboxes)
+                    batch_pboxes = project(batch_pboxes)
                     print batch_class_array.shape, batch_boxes_array.shape, batch_roi_array.shape
                     batch_loss = model.train_on_batch(x=[imgs_array, batch_roi_array], y=[batch_class_array, batch_boxes_array])
                     print "batch_loss", batch_loss
@@ -217,6 +216,7 @@ if __name__ == '__main__':
 
             except ValueError as v:
                 count+=1
+                continue
 
             except IndexError as i:
                 continue
