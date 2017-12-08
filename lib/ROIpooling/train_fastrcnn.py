@@ -7,9 +7,11 @@ from keras.layers import Input
 from keras import optimizers
 from loss import *
 import argparse
+from config import Config 
 
 POOL_SIZE = 7
 DS_FACTOR = 16
+
 
 def get_arguments():
     """Parse all the arguments provided from the CLI.
@@ -18,6 +20,7 @@ def get_arguments():
       A list of parsed arguments.
     """
     parser = argparse.ArgumentParser(description="Fast RCNN training")
+    parser.add_argument("--environ", type=int, help="To load an existing model or not")
     parser.add_argument("--pretrained", type=int, help="To load an existing model or not")
     parser.add_argument("--modelfile", type=str, help="Path to the file with model weights.")
     return parser.parse_args()
@@ -71,6 +74,7 @@ def create_array(classes, gboxes_list, pboxes_list):
     bboxes_coords = np.zeros((len(gboxes_list),len(gboxes_list[0]), 80), dtype=np.int16)
     bboxes_labels = np.zeros((len(gboxes_list),len(gboxes_list[0]), 80), dtype=np.int16)
     pboxes_array = np.zeros((len(gboxes_list),len(gboxes_list[0]), 4), dtype=np.int16)
+
 
     for i,gboxes in enumerate(gboxes_list):
         for j, gbox in enumerate(gboxes):
@@ -143,19 +147,19 @@ def project(batch_pboxes):
 			new_box[3] = int((box[2]-box[0])/16.0)
 			new_pboxes.append(new_box)
 		new_batch_pboxes.append(new_pboxes)
-	return
+	return new_batch_pboxes
 
 
 if __name__ == '__main__':
 
     args = get_arguments()
-    all_proposals = spio.loadmat('/home/mplubuntu/Desktop/dump/Object-Detection-Faster-RCNN/selective_search_data/voc_2007_train.mat')
+    C = Config(args.environ)
+    all_proposals = spio.loadmat(C.roi_mat_file)
     class_dict = {"background": 0, "aeroplane": 1, "bicycle": 2, "bird": 3, "boat": 4, "bottle": 5, "bus": 6, "car": 7,
                   "cat": 8, "chair": 9, "cow": 10, "diningtable": 11, "dog": 12, "horse": 13, "motorbike": 14,
                   "person": 15, "pottedplant": 16, "sheep": 17, "sofa": 18, "train": 19, "tvmonitor": 20}
-    images_dir = '/home/mplubuntu/Downloads/VOC2007/JPEGImages/'
-    annotations_dir = '/home/mplubuntu/Downloads/VOC2007/Annotations/'
-    files = os.listdir(images_dir)
+
+    files = os.listdir(C.images_path)
     N, R = 2, 64
     no_epochs = 10
     epoch = 0
@@ -177,13 +181,12 @@ if __name__ == '__main__':
         shuffle(files)
         batch_class, batch_boxes, batch_pboxes,imgs = [], [], [],[]
         for i,f in enumerate(files):
-            # files_batch = files[i:i + N]
 
             try:
                 # for file in files_batch:
                 name = f.split('.')[0]
                 img = cv2.imread(os.path.join(images_dir, f))
-                xml_file = os.path.join(annotations_dir, name + '.xml')
+                xml_file = os.path.join(C.annotations_path, name + '.xml')
                 class_labels, gt_boxes = parse(xml_file)
 
                 index = np.where(all_proposals['images'] == name)[0][0]
@@ -199,24 +202,16 @@ if __name__ == '__main__':
                 batch_pboxes.append(batch[2])
                 imgs.append(img)
 
-                print len(imgs),N
                 if len(imgs) == N:
-                    print "one batch"
                     imgs_array = np.array(imgs)
-                    print imgs_array.shape
                     batch_pboxes = project(batch_pboxes)
                     batch_class_array, batch_boxes_array,batch_roi_array = create_array(batch_class, batch_boxes, batch_pboxes)
                     print batch_class_array.shape, batch_boxes_array.shape, batch_roi_array.shape
-                    batch_count+=1
-                    print batch_count
-                    try:
-                        batch_loss = model.train_on_batch(x=[imgs_array, batch_roi_array], y=[batch_class_array, batch_boxes_array])
-                    except Exception as e:
-                        print e
-                    print batch_loss
+                    batch_loss = model.train_on_batch(x=[imgs_array, batch_roi_array], y=[batch_class_array, batch_boxes_array])
+                    print "batch_loss", batch_loss
                     all_loss.append(batch_loss)
                     batch_class, batch_boxes, batch_pboxes, imgs = [], [], [], []
-                    print 'hi'
+
                 else:
                     continue
 
@@ -229,5 +224,5 @@ if __name__ == '__main__':
         epoch += 1
         if sum(all_loss) < best_loss:
             print('Total loss decreased from {} to {}, saving weights'.format(best_loss,sum(all_loss)))
-            model.save('parameters/my-model.h5')
+            model.save(C.model_path)
             best_loss = sum(all_loss)

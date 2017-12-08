@@ -53,12 +53,8 @@ class RoiPoolingConv(Layer):
         imgs = x[0]
         rois = x[1]
 
-        input_shape = K.shape(img)
-
-        imgs_shape = imgs.shape
-        outputs = K.zeros(imgs_shape[0], self.num_rois, self.pool_size, self.pool_size, self.nb_channels)
-        
-        for i,img in enumerate(imgs):
+        outputs = []
+        for i in range(2):
             img_output = []
             for roi_idx in range(self.num_rois):
 
@@ -72,14 +68,14 @@ class RoiPoolingConv(Layer):
                 w = K.cast(w, 'int32')
                 h = K.cast(h, 'int32')
 
-                outputs[i,roi_idx,:,:,:] = tf.image.resize_images(img[y:y+h, x:x+w, :], (self.pool_size, self.pool_size))
-        #         img_output.append(rs)
-        #     outputs.append(img_output)
+                rs = tf.image.resize_images(imgs[i, y:y+h, x:x+w, :], (self.pool_size, self.pool_size))
+                img_output.append(rs)
+            outputs.append(img_output)
 
-        # final_output = K.concatenate(outputs, axis=0)
-        # final_output = K.reshape(final_output, (2, self.num_rois, self.pool_size, self.pool_size, self.nb_channels))
+        final_output = K.concatenate(outputs, axis=0)
+        final_output = K.reshape(final_output, (2, self.num_rois, self.pool_size, self.pool_size, self.nb_channels))
 
-        return outputs
+        return final_output
     
     
     def get_config(self):
