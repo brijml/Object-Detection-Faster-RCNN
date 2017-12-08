@@ -11,4 +11,4 @@
 ### Results of Fast-RCNN
 ![ex1](https://github.com/brijml/Object-Detection-Faster-RCNN/blob/fast_rcnn/examples/output1.png)
 ![ex2](https://github.com/brijml/Object-Detection-Faster-RCNN/blob/fast_rcnn/examples/output2.png)
-![ex3](https://github.com/brijml/Object-Detection-Faster-RCNN/blob/fast_rcnn/examples/output.png)
+![ex3](https://github.com/brijml/Object-Detection-Faster-RCNN/blob/fast_rcnn/examples/output3.png)
