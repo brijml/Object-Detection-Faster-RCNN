@@ -52,6 +52,8 @@ class RoiPoolingConv(Layer):
 
         imgs = x[0]
         rois = x[1]
+        
+        input_shape = K.shape(imgs)
 
         outputs = []
         for i in range(2):

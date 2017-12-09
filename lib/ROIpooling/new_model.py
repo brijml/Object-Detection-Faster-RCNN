@@ -11,7 +11,7 @@ for layer in vgg_model.layers[:-1]:
 
 def fast_rcnn(imgs, input_rois):
     conv_feature_map = new_model(imgs)
-    out_roi_pool = RoiPoolingConv(7, 128)([conv_feature_map, input_rois])
+    out_roi_pool = RoiPoolingConv(7, 64)([conv_feature_map, input_rois])
     f1 = TimeDistributed(Flatten(input_shape=(None, None)))(out_roi_pool)
     f2 = TimeDistributed(Dense(4096, activation='relu', name='fc1'))(f1)
     f3 = TimeDistributed(Dropout(0.5))(f2)

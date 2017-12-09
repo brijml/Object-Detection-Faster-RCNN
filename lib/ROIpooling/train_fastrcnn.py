@@ -92,10 +92,10 @@ def create_iou_array(gt_boxes, proposals_image):
 
     iou_array = np.zeros((len(proposals_image), len(gt_boxes)), np.float32)
     for i, proposal in enumerate(proposals_image):
-        #proposal_width, proposal_height = proposal[3] - proposal[1], proposal[2] - proposal[0]
-        #if proposal_width > DS_FACTOR * POOL_SIZE and proposal_height > DS_FACTOR * POOL_SIZE:
-        for j, gt_box in enumerate(gt_boxes):
-            iou_array[i, j] = intersection_over_union_score(gt_box, proposal)
+        proposal_width, proposal_height = proposal[3] - proposal[1], proposal[2] - proposal[0]
+        if proposal_width > DS_FACTOR * POOL_SIZE and proposal_height > DS_FACTOR * POOL_SIZE:
+            for j, gt_box in enumerate(gt_boxes):
+                iou_array[i, j] = intersection_over_union_score(gt_box, proposal)
 
     return iou_array
 
