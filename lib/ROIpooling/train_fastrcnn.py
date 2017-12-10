@@ -79,10 +79,10 @@ def create_array(classes, gboxes_list, pboxes_list):
         for j, gbox in enumerate(gboxes):
             if gbox is not None:
                 parametrised_box = parameterise(gbox, pboxes_list[i][j])
-                pboxes_array[i,j,:] = pboxes_list[i][j]
                 start_idx = 4 * (class_dict[classes[i][j]] - 1)
                 bboxes_coords[i, j, start_idx:start_idx + 4] = parametrised_box
                 bboxes_labels[i, j, start_idx:start_idx + 4] = [1,1,1,1]
+            pboxes_array[i,j,:] = pboxes_list[i][j]
 
     bboxes_array = np.concatenate([bboxes_labels, bboxes_coords], axis=1)
     return cls_array, bboxes_array, pboxes_array
@@ -92,10 +92,10 @@ def create_iou_array(gt_boxes, proposals_image):
 
     iou_array = np.zeros((len(proposals_image), len(gt_boxes)), np.float32)
     for i, proposal in enumerate(proposals_image):
-        proposal_width, proposal_height = proposal[3] - proposal[1], proposal[2] - proposal[0]
-        if proposal_width > DS_FACTOR * POOL_SIZE and proposal_height > DS_FACTOR * POOL_SIZE:
-            for j, gt_box in enumerate(gt_boxes):
-                iou_array[i, j] = intersection_over_union_score(gt_box, proposal)
+        #proposal_width, proposal_height = proposal[3] - proposal[1], proposal[2] - proposal[0]
+        #if proposal_width > DS_FACTOR * POOL_SIZE and proposal_height > DS_FACTOR * POOL_SIZE:
+        for j, gt_box in enumerate(gt_boxes):
+            iou_array[i, j] = intersection_over_union_score(gt_box, proposal)
 
     return iou_array
 
@@ -136,16 +136,17 @@ def sample_minibatch(class_labels, gt_boxes, proposals_image):
     return temp_classes, temp_bboxes, temp_pboxes
 
 def project(batch_pboxes):
-	new_batch_pboxes = []
-	for pboxes in batch_pboxes:
-		new_pboxes,new_box = [],[0]*4
-		for box in pboxes:
-			new_box[0] = int(box[0]/16.0)
-			new_box[1] = int(box[1]/16.0)
-			new_box[2] = int((box[2]-box[0])/16.0)
-			new_box[3] = int((box[2]-box[0])/16.0)
-			new_pboxes.append(new_box)
-		new_batch_pboxes.append(new_pboxes)
+	new_batch_pboxes = np.zeros_like(batch_pboxes)
+	m,n,p = batch_pboxes.shape
+	print m,n,p
+	for i in range(m):
+		for j in range(n):
+			box = batch_pboxes[i,j,:]
+			new_batch_pboxes[i,j,0] = int(box[0]/16.0)
+			new_batch_pboxes[i,j,1] = int(box[1]/16.0)
+			new_batch_pboxes[i,j,2] = int((box[2]-box[0])/16.0)
+			new_batch_pboxes[i,j,3] = int((box[3]-box[1])/16.0)
+			print box,"-->",new_batch_pboxes[i,j,:]
 	return new_batch_pboxes
 
 
@@ -204,7 +205,7 @@ if __name__ == '__main__':
                 if len(imgs) == N:
                     imgs_array = np.array(imgs)
                     batch_class_array, batch_boxes_array,batch_roi_array = create_array(batch_class, batch_boxes, batch_pboxes)
-                    batch_pboxes = project(batch_pboxes)
+                    batch_roi_array = project(batch_roi_array)
                     print batch_class_array.shape, batch_boxes_array.shape, batch_roi_array.shape
                     batch_loss = model.train_on_batch(x=[imgs_array, batch_roi_array], y=[batch_class_array, batch_boxes_array])
                     print "batch_loss", batch_loss
