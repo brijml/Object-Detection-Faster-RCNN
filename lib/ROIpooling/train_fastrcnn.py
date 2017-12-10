@@ -84,7 +84,7 @@ def create_array(classes, gboxes_list, pboxes_list):
                 bboxes_labels[i, j, start_idx:start_idx + 4] = [1,1,1,1]
             pboxes_array[i,j,:] = pboxes_list[i][j]
 
-    bboxes_array = np.concatenate([bboxes_labels, bboxes_coords], axis=1)
+    bboxes_array = np.concatenate([bboxes_labels, bboxes_coords], axis=2)
     return cls_array, bboxes_array, pboxes_array
 
 
@@ -146,7 +146,6 @@ def project(batch_pboxes):
 			new_batch_pboxes[i,j,1] = int(box[1]/16.0)
 			new_batch_pboxes[i,j,2] = int((box[2]-box[0])/16.0)
 			new_batch_pboxes[i,j,3] = int((box[3]-box[1])/16.0)
-			print box,"-->",new_batch_pboxes[i,j,:]
 	return new_batch_pboxes
 
 
