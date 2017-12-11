@@ -8,6 +8,7 @@ from keras import optimizers
 from loss import *
 import argparse
 from config import Config 
+from keras.utils import generic_utils
 
 POOL_SIZE = 7
 DS_FACTOR = 16
@@ -161,9 +162,7 @@ if __name__ == '__main__':
     files = os.listdir(C.images_path)
     N, R = 2, 64
     no_epochs = 10
-    epoch = 0
 
-    all_loss = []
     best_loss = np.Inf
 
     if args.pretrained == 1:
@@ -176,7 +175,13 @@ if __name__ == '__main__':
         model.compile(loss=[cls_loss, smoothL1],optimizer=optimizers.RMSprop(lr=1e-5, decay=0.0001),  metrics=['accuracy'])
 
     count,batch_count = 0,0 
-    while epoch < no_epochs:
+    for epoch in range(no_epochs):
+        
+        progbar = generic_utils.Progbar(epoch_length)
+        print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
+
+        all_loss,class_loss,regr_loss = [],[],[]
+        iter_num = 0
         shuffle(files)
         batch_class, batch_boxes, batch_pboxes,imgs = [], [], [],[]
         for i,f in enumerate(files):
@@ -206,13 +211,21 @@ if __name__ == '__main__':
                     batch_class_array, batch_boxes_array,batch_roi_array = create_array(batch_class, batch_boxes, batch_pboxes)
                     batch_roi_array = project(batch_roi_array)
                     print batch_class_array.shape, batch_boxes_array.shape, batch_roi_array.shape
-                    batch_loss = model.train_on_batch(x=[imgs_array, batch_roi_array], y=[batch_class_array, batch_boxes_array])
-                    print "batch_loss", batch_loss
-                    all_loss.append(batch_loss)
-                    batch_class, batch_boxes, batch_pboxes, imgs = [], [], [], []
+                    
+                    try:
+                        batch_loss = model.train_on_batch(x=[imgs_array, batch_roi_array], y=[batch_class_array, batch_boxes_array])
+                        print "batch_loss", batch_loss
+                        all_loss.append(batch_loss[0])
+                        class_loss.append(batch_loss[1])
+                        regr_loss.append(batch_loss[2])
+                        batch_class, batch_boxes, batch_pboxes, imgs = [], [], [], []
+                        progbar.update(iter_num, [('cls', sum(class_loss)/len(class_loss)), ('regr', sum(regr_loss)/len(regr_loss))])
 
+                    except Exception as e:
+                        continue
                 else:
                     continue
+
 
             except ValueError as v:
                 count+=1
@@ -221,7 +234,6 @@ if __name__ == '__main__':
             except IndexError as i:
                 continue
 
-        epoch += 1
         if sum(all_loss) < best_loss:
             print('Total loss decreased from {} to {}, saving weights'.format(best_loss,sum(all_loss)))
             model.save(C.model_path)
