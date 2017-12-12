@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
     args = get_arguments()
     C = Config(args.environ)
-    all_proposals = spio.loadmat(C.roi_mat_file)
+    all_proposals = spio.loadmat(C.train_roi_mat_file)
     class_dict = {"background": 0, "aeroplane": 1, "bicycle": 2, "bird": 3, "boat": 4, "bottle": 5, "bus": 6, "car": 7,
                   "cat": 8, "chair": 9, "cow": 10, "diningtable": 11, "dog": 12, "horse": 13, "motorbike": 14,
                   "person": 15, "pottedplant": 16, "sheep": 17, "sofa": 18, "train": 19, "tvmonitor": 20}
@@ -177,8 +177,8 @@ if __name__ == '__main__':
     count,batch_count = 0,0 
     for epoch in range(no_epochs):
         
-        progbar = generic_utils.Progbar(epoch_length)
-        print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
+        # progbar = generic_utils.Progbar(epoch_length)
+        # print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
 
         all_loss,class_loss,regr_loss = [],[],[]
         iter_num = 0
@@ -196,7 +196,7 @@ if __name__ == '__main__':
                 index = np.where(all_proposals['images'] == name)[0][0]
 
                 proposals_image = all_proposals['boxes'][:, index][0]
-                img, gt_boxes, proposals_image = resize(img, gt_boxes, proposals_image)
+                img, gt_boxes, proposals_image = resize(img, proposals_image, gt_boxes)
                 
                 
                 batch = sample_minibatch(class_labels, gt_boxes, proposals_image)
@@ -219,7 +219,7 @@ if __name__ == '__main__':
                         class_loss.append(batch_loss[1])
                         regr_loss.append(batch_loss[2])
                         batch_class, batch_boxes, batch_pboxes, imgs = [], [], [], []
-                        progbar.update(iter_num, [('cls', sum(class_loss)/len(class_loss)), ('regr', sum(regr_loss)/len(regr_loss))])
+                        # progbar.update(iter_num, [('cls', sum(class_loss)/len(class_loss)), ('regr', sum(regr_loss)/len(regr_loss))])
 
                     except Exception as e:
                         continue

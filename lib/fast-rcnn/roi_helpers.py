@@ -68,10 +68,11 @@ def transform(image, boxes, arr):
     return image, boxes, arr
 
 
-def resize(image, boxes, arr):
+def resize(image, *args):
     '''
     resizing image so as to have largest dimension to be of length 1000 (maintaing aspect ratio)
     '''
+    arr = args[0]
     final_rois = np.zeros_like(arr)
     m, n = image.shape[:2]
 
@@ -83,14 +84,21 @@ def resize(image, boxes, arr):
     rm, rn = float(m1) / m, float(n1) / n
     resized_image = cv2.resize(image, (n1, m1))
 
-    # applying same resize to label co-ordinates, the co-ordinates are in convention (x,y) and not (row,column)
-    resized_boxes = []
-    for i, box in enumerate(boxes):
-        resized_boxes.append([int(box[0] * rn), int(box[1] * rm), int(box[2] * rn), int(box[3] * rm)])
-
     final_rois[:, 0] = arr[:, 0] * rm
     final_rois[:, 1] = arr[:, 1] * rn
     final_rois[:, 2] = arr[:, 2] * rm
     final_rois[:, 3] = arr[:, 3] * rn
 
-    return resized_image, resized_boxes, final_rois
+    # applying same resize to label co-ordinates, the co-ordinates are in convention (x,y) and not (row,column)
+    if len(args) == 1:
+        return resized_image, final_rois
+        
+    if len(args) == 2:
+        boxes = args[1]
+        resized_boxes = []
+        for i, box in enumerate(boxes):
+            resized_boxes.append([int(box[0] * rn), int(box[1] * rm), int(box[2] * rn), int(box[3] * rm)])
+
+
+        return resized_image, resized_boxes, final_rois
+
